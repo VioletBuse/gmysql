@@ -1,5 +1,5 @@
 name = "gmysql"
-version = "1.1.0"
+version = "1.1.1"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
@@ -15,6 +15,7 @@ repository = { type = "github", user = "VioletBuse", repo = "gmysql" }
 [dependencies]
 gleam_stdlib = ">= 0.34.0 and < 2.0.0"
 mysql = ">= 1.8.0 and < 2.0.0"
+gleam_erlang = ">= 0.25.0 and < 1.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

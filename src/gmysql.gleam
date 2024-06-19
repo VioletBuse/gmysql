@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/erlang/charlist.{type Charlist}
 import gleam/option.{type Option, None, Some}
 
 pub type Connection
@@ -10,11 +11,11 @@ pub type ConnectionMode {
 }
 
 type ConnectionOption {
-  Host(String)
+  Host(Charlist)
   Port(Int)
-  User(String)
-  Password(String)
-  Database(String)
+  User(Charlist)
+  Password(Charlist)
+  Database(Charlist)
   ConnectMode(ConnectionMode)
   ConnectTimeout(Int)
   KeepAlive(Int)
@@ -39,7 +40,7 @@ pub fn default_config() -> Config {
     port: 3306,
     user: None,
     password: None,
-    database: "mysql",
+    database: "db",
     connection_mode: Asynchronous,
     connection_timeout: 1000,
     keep_alive: 1000,
@@ -48,11 +49,11 @@ pub fn default_config() -> Config {
 
 fn config_to_connection_options(config: Config) -> List(ConnectionOption) {
   [
-    Some(Host(config.host)),
+    Some(Host(config.host |> charlist.from_string)),
     Some(Port(config.port)),
-    option.map(config.user, User),
-    option.map(config.password, Password),
-    Some(Database(config.database)),
+    option.map(config.user, charlist.from_string) |> option.map(User),
+    option.map(config.password, charlist.from_string) |> option.map(Password),
+    Some(Database(config.database |> charlist.from_string)),
     Some(ConnectMode(config.connection_mode)),
     Some(ConnectTimeout(config.connection_timeout)),
     Some(KeepAlive(config.keep_alive)),
