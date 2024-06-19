@@ -1,4 +1,5 @@
 import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option, None, Some}
 
 pub type Connection
 
@@ -8,7 +9,7 @@ pub type ConnectionMode {
   Lazy
 }
 
-pub type ConnectionOption {
+type ConnectionOption {
   Host(String)
   Port(Int)
   User(String)
@@ -17,6 +18,46 @@ pub type ConnectionOption {
   ConnectMode(ConnectionMode)
   ConnectTimeout(Int)
   KeepAlive(Int)
+}
+
+pub type Config {
+  Config(
+    host: String,
+    port: Int,
+    user: Option(String),
+    password: Option(String),
+    database: String,
+    connection_mode: ConnectionMode,
+    connection_timeout: Int,
+    keep_alive: Int,
+  )
+}
+
+pub fn default_config() -> Config {
+  Config(
+    host: "localhost",
+    port: 3306,
+    user: None,
+    password: None,
+    database: "mysql",
+    connection_mode: Asynchronous,
+    connection_timeout: 1000,
+    keep_alive: 1000,
+  )
+}
+
+fn config_to_connection_options(config: Config) -> List(ConnectionOption) {
+  [
+    Some(Host(config.host)),
+    Some(Port(config.port)),
+    option.map(config.user, User),
+    option.map(config.password, Password),
+    Some(Database(config.database)),
+    Some(ConnectMode(config.connection_mode)),
+    Some(ConnectTimeout(config.connection_timeout)),
+    Some(KeepAlive(config.keep_alive)),
+  ]
+  |> option.values
 }
 
 pub type Error {
@@ -28,13 +69,26 @@ pub type Error {
 pub type Param
 
 @external(erlang, "gmysql_ffi", "connect")
-pub fn connect(options: List(ConnectionOption)) -> Result(Connection, Dynamic)
+fn connect_ffi(options: List(ConnectionOption)) -> Result(Connection, Dynamic)
+
+pub fn connect(config: Config) {
+  config_to_connection_options(config)
+  |> connect_ffi
+}
 
 @external(erlang, "gmysql_ffi", "with_connection")
-pub fn with_connection(
+fn with_connection_ffi(
   options: List(ConnectionOption),
   with function: fn(Connection) -> a,
 ) -> Result(a, Dynamic)
+
+pub fn with_connection(
+  config: Config,
+  with function: fn(Connection) -> a,
+) -> Result(a, Dynamic) {
+  config_to_connection_options(config)
+  |> with_connection_ffi(function)
+}
 
 @external(erlang, "gmysql_ffi", "exec")
 pub fn exec(

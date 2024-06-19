@@ -11,7 +11,7 @@ import gmysql
 import gleam/dynamic
 
 pub fn main() {
-  let assert Ok(connection) = gmysql.connect([])
+  let assert Ok(connection) = gmysql.connect(gmysql.default_config())
   gmysql.query(
     connection,
     "SELECT * FROM users WHERE id = ?;",
