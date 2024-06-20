@@ -4,6 +4,11 @@ import gleam/option.{type Option, None, Some}
 
 pub type Connection
 
+pub type Timeout {
+  Infinity
+  Ms(Int)
+}
+
 pub type ConnectionMode {
   Synchronous
   Asynchronous
@@ -21,6 +26,9 @@ type ConnectionOption {
   KeepAlive(Int)
 }
 
+@external(erlang, "gmysql_ffi", "from_timeout")
+fn from_timeout(in: Timeout) -> Int
+
 pub type Config {
   Config(
     host: String,
@@ -29,7 +37,7 @@ pub type Config {
     password: Option(String),
     database: String,
     connection_mode: ConnectionMode,
-    connection_timeout: Int,
+    connection_timeout: Timeout,
     keep_alive: Int,
   )
 }
@@ -42,7 +50,7 @@ pub fn default_config() -> Config {
     password: None,
     database: "db",
     connection_mode: Asynchronous,
-    connection_timeout: 1000,
+    connection_timeout: Infinity,
     keep_alive: 1000,
   )
 }
@@ -55,7 +63,7 @@ fn config_to_connection_options(config: Config) -> List(ConnectionOption) {
     option.map(config.password, charlist.from_string) |> option.map(Password),
     Some(Database(config.database |> charlist.from_string)),
     Some(ConnectMode(config.connection_mode)),
-    Some(ConnectTimeout(config.connection_timeout)),
+    Some(ConnectTimeout(config.connection_timeout |> from_timeout)),
     Some(KeepAlive(config.keep_alive)),
   ]
   |> option.values
@@ -92,11 +100,23 @@ pub fn with_connection(
 }
 
 @external(erlang, "gmysql_ffi", "exec")
-pub fn exec(
+fn exec_internal(
   connection: Connection,
   query: String,
-  timeout: Int,
+  timeout: a,
 ) -> Result(Nil, Error)
+
+pub fn exec(sql: String, on connection: Connection) -> Result(Nil, Error) {
+  exec_with_timeout(sql, connection, Infinity)
+}
+
+pub fn exec_with_timeout(
+  sql: String,
+  on connection: Connection,
+  until timeout: Timeout,
+) -> Result(Nil, Error) {
+  exec_internal(connection, sql, timeout)
+}
 
 @external(erlang, "gmysql_ffi", "to_param")
 pub fn to_param(param: a) -> Param
@@ -106,17 +126,26 @@ fn query_internal(
   connection: Connection,
   query: String,
   params: List(Param),
-  timeout: Int,
+  timeout: Timeout,
 ) -> Result(Dynamic, Error)
 
 pub fn query(
-  connection: Connection,
-  query: String,
-  params: List(Param),
-  timeout: Int,
-  decoder: fn(Dynamic) -> Result(a, dynamic.DecodeErrors),
+  sql: String,
+  on connection: Connection,
+  with arguments: List(Param),
+  expecting decoder: fn(Dynamic) -> Result(a, List(dynamic.DecodeError)),
 ) -> Result(a, Error) {
-  case query_internal(connection, query, params, timeout) {
+  query_with_timeout(sql, connection, arguments, decoder, Infinity)
+}
+
+pub fn query_with_timeout(
+  sql: String,
+  on connection: Connection,
+  with arguments: List(Param),
+  expecting decoder: fn(Dynamic) -> Result(a, List(dynamic.DecodeError)),
+  until timeout: Timeout,
+) -> Result(a, Error) {
+  case query_internal(connection, sql, arguments, timeout) {
     Error(int) -> Error(int)
     Ok(dyn) ->
       case decoder(dyn) {
@@ -142,4 +171,4 @@ pub fn with_transaction(
 ) -> Result(a, TransactionError(b))
 
 @external(erlang, "gmysql_ffi", "close")
-pub fn close(connection: Connection) -> Nil
+pub fn disconnect(connection: Connection) -> Nil

@@ -1,7 +1,8 @@
 -module(gmysql_ffi).
 
 -export([connect/1, exec/3, to_param/1, query/4,
-    with_connection/2, with_transaction/3, close/1]).
+    with_connection/2, with_transaction/3, close/1,
+    from_timeout/1]).
 
 connect(ConnectOpts) ->
     try
@@ -23,8 +24,14 @@ exec(Connection, Query, Timeout) ->
 to_param(Param) ->
     Param.
 
+from_timeout(Timeout) ->
+    case Timeout of
+        infinity -> infinity;
+        {_, X} when is_integer(X) -> X
+    end.
+
 query(Connection, Query, Params, Timeout) ->
-    case mysql:query(Connection, Query, Params, Timeout) of
+    case mysql:query(Connection, Query, Params, from_timeout(Timeout)) of
         ok -> {ok, []};
         {ok, ok} -> {ok, []};
         {ok, ColNameList, Rows} -> {ok, Rows};
