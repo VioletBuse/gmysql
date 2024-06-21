@@ -2,7 +2,7 @@
 
 -export([connect/1, exec/3, to_param/1, query/4,
     with_connection/2, with_transaction/3, close/1,
-    from_timeout/1]).
+    from_timeout/1, to_pid/1, from_pid/1]).
 
 connect(ConnectOpts) ->
     try
@@ -24,6 +24,12 @@ exec(Connection, Query, Timeout) ->
 to_param(Param) ->
     Param.
 
+to_pid(Connection) ->
+    Connection.
+
+from_pid(Pid) ->
+    Pid.
+
 from_timeout(Timeout) ->
     case Timeout of
         infinity -> infinity;
@@ -34,7 +40,7 @@ query(Connection, Query, Params, Timeout) ->
     case mysql:query(Connection, Query, Params, from_timeout(Timeout)) of
         ok -> {ok, []};
         {ok, ok} -> {ok, []};
-        {ok, ColNameList, Rows} -> {ok, Rows};
+        {ok, _, Rows} -> {ok, Rows};
         {ok, ResultsList} -> {ok, ResultsList};
         {error, {Code, _, Message}} -> {error, {server_error, Code, Message}};
         {error, Any} -> {error, {unknown_error, Any}}

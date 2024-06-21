@@ -1,5 +1,6 @@
 import gleam/dynamic.{type Dynamic}
 import gleam/erlang/charlist.{type Charlist}
+import gleam/erlang/process.{type Pid}
 import gleam/option.{type Option, None, Some}
 
 pub type Connection
@@ -121,6 +122,14 @@ pub fn exec_with_timeout(
 @external(erlang, "gmysql_ffi", "to_param")
 pub fn to_param(param: a) -> Param
 
+@external(erlang, "gmysql_ffi", "to_pid")
+pub fn to_pid(connection: Connection) -> Pid
+
+/// Danger, this is primarily for internal use, do not pass in pids that you did not
+/// get from the `to_pid/1` function.
+@external(erlang, "gmysql_ffi", "from_pid")
+pub fn from_pid(connection: Pid) -> Connection
+
 @external(erlang, "gmysql_ffi", "query")
 fn query_internal(
   connection: Connection,
@@ -134,7 +143,7 @@ pub fn query(
   on connection: Connection,
   with arguments: List(Param),
   expecting decoder: fn(Dynamic) -> Result(a, List(dynamic.DecodeError)),
-) -> Result(a, Error) {
+) -> Result(List(a), Error) {
   query_with_timeout(sql, connection, arguments, decoder, Infinity)
 }
 
@@ -144,11 +153,11 @@ pub fn query_with_timeout(
   with arguments: List(Param),
   expecting decoder: fn(Dynamic) -> Result(a, List(dynamic.DecodeError)),
   until timeout: Timeout,
-) -> Result(a, Error) {
+) -> Result(List(a), Error) {
   case query_internal(connection, sql, arguments, timeout) {
     Error(int) -> Error(int)
     Ok(dyn) ->
-      case decoder(dyn) {
+      case dynamic.list(decoder)(dyn) {
         Ok(decoded) -> Ok(decoded)
         Error(decode_errors) -> Error(DecodeError(decode_errors))
       }
