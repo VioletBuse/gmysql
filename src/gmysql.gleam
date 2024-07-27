@@ -122,6 +122,9 @@ pub fn exec_with_timeout(
 @external(erlang, "gmysql_ffi", "to_param")
 pub fn to_param(param: a) -> Param
 
+@external(erlang, "gmysql_ffi", "null_param")
+pub fn null_param() -> Param
+
 @external(erlang, "gmysql_ffi", "to_pid")
 pub fn to_pid(connection: Connection) -> Pid
 
