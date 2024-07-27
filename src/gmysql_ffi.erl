@@ -73,12 +73,9 @@ with_transaction(Connection, Function, Retries) ->
         end
     end,
     case mysql:transaction(Connection, F, Retries) of
-        {atomic, Result} ->
-            {ok, Result};
-        {aborted, {throw, {transaction_function_errored, Reason}}} ->
-            {error, {function_error, Reason}};
-        {aborted, Reason} ->
-            {error, {other_error, Reason}}
+        {atomic, Result} -> {ok, Result};
+        {aborted, {throw, {transaction_function_errored, Reason}}} -> {error, {function_error, Reason}};
+        {aborted, Reason} -> {error, {other_error, Reason}}
     end.
 
 close(Connection) ->
