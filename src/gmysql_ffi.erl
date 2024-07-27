@@ -69,7 +69,8 @@ with_transaction(Connection, Function, Retries) ->
     F = fun() ->
         case Function(Connection) of
             {ok, Result} -> {ok, Result};
-            {error, Reason} -> throw({transaction_function_errored, Reason})
+            {error, Reason} -> 
+                throw({transaction_function_errored, Reason})
         end
     end,
     case mysql:transaction(Connection, F, Retries) of
