@@ -69,7 +69,7 @@ with_transaction(Connection, Function, Retries) ->
     F = fun() ->
         case Function(Connection) of
             {ok, Result} -> {ok, Result};
-            {error, Reason} -> 
+            {error, Reason} ->
                 throw({transaction_function_errored, Reason})
         end
     end,
