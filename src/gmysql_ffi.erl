@@ -1,8 +1,18 @@
 -module(gmysql_ffi).
 
--export([connect/1, exec/3, to_param/1, query/4,
-    with_connection/2, with_transaction/3, close/1,
-    from_timeout/1, to_pid/1, from_pid/1]).
+-export([
+    connect/1,
+    exec/3,
+    to_param/1,
+    null_param/0,
+    query/4,
+    with_connection/2,
+    with_transaction/3,
+    close/1,
+    from_timeout/1,
+    to_pid/1,
+    from_pid/1
+]).
 
 connect(ConnectOpts) ->
     try
@@ -23,6 +33,9 @@ exec(Connection, Query, Timeout) ->
 
 to_param(Param) ->
     Param.
+
+null_param() ->
+    null.
 
 to_pid(Connection) ->
     Connection.
