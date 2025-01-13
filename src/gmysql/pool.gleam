@@ -2,11 +2,11 @@ import gleam/bool
 import gleam/erlang
 import gleam/erlang/process.{type Subject}
 import gleam/function
-import gleam/iterator
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor.{type Next, Continue, Stop}
 import gleam/otp/intensity_tracker.{type IntensityTracker}
+import gleam/yielder
 import gmysql.{type Config, type Connection}
 
 pub opaque type Pool {
@@ -39,9 +39,9 @@ pub fn connect(
   limit max_connections_per_second: Int,
 ) {
   let slots =
-    iterator.repeat(Slot(connection: None, checked_out: False))
-    |> iterator.take(count)
-    |> iterator.to_list
+    yielder.repeat(Slot(connection: None, checked_out: False))
+    |> yielder.take(count)
+    |> yielder.to_list
 
   let assert Ok(actor) =
     actor.start(
@@ -219,10 +219,10 @@ fn handle_restart_all(_message: Message, state: State) -> Next(Message, State) {
 
 fn handle_start_new(_message: Message, state: State) -> Next(Message, State) {
   actor.continue(
-    State(
-      ..state,
-      slots: [Slot(connection: None, checked_out: False), ..state.slots],
-    ),
+    State(..state, slots: [
+      Slot(connection: None, checked_out: False),
+      ..state.slots
+    ]),
   )
 }
 
